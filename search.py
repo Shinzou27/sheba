@@ -28,8 +28,8 @@ def search_context(arrow_id):
 target_personagem = "Mash"
 target_arrow = 200020510
 
-# print("Falas do personagem:", search_char_dialogues(target_personagem))
-# print("Contexto da fala:", search_context(target_arrow))
+print("Falas do personagem:", search_char_dialogues(target_personagem))
+print("Contexto da fala:", search_context(target_arrow))
 
 def get_near_dialogues(id):
   ids = [str(int(id) + i) for i in range(15)]
@@ -39,4 +39,6 @@ def get_near_dialogues(id):
   return sorted_documents
 
 for i in range(20):
-  print(get_near_dialogues(i+4584))
+  print(get_near_dialogues(i+4000))
+  
+print(collection.count())

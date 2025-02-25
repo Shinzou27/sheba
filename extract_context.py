@@ -1,22 +1,15 @@
 import chromadb
 import time
 import random
-# Load model directly
 from transformers import AutoTokenizer, AutoModelForCausalLM
 
 chroma_client = chromadb.PersistentClient(path="./chroma_db") 
 
-collection = chroma_client.get_or_create_collection(name="teste_agartha")
-print("A")
-model_name = "gpt2"
-print("B")
-try:
-    tokenizer = AutoTokenizer.from_pretrained(model_name)
-    print("Tokenizer carregado")
-    model = AutoModelForCausalLM.from_pretrained(model_name)
-    print("Modelo carregado")
-except Exception as e:
-    print(f"Erro ao carregar o modelo: {e}")
+collection = chroma_client.get_or_create_collection(name="historias")
+
+tokenizer = AutoTokenizer.from_pretrained("meta-llama/Llama-2-7b-chat-hf")
+model = AutoModelForCausalLM.from_pretrained("meta-llama/Llama-2-7b-chat-hf")
+print(model.device)
 
 def get_near_dialogues(id):
     ids = [str(int(id) + i - 4) for i in range(9)]
@@ -40,9 +33,15 @@ def extract_context(text, near_dialogues):
                 "Exemplo de emoções: 'felicidade', 'tristeza', 'raiva', 'medo', 'confusão', etc.\n\n"
                 f"Texto: {text}\n"
                 "Contexto relevante e interações anteriores e posteriores: \n" + "\n".join(near_dialogues))
-            print(f"Prompt gerado: {prompt[:100]}...")
+            print(f"Prompt gerado: {prompt}...")
             inputs = tokenizer(prompt, return_tensors="pt")
-            outputs = model.generate(inputs["input_ids"], max_length=150, num_return_sequences=1)
+            outputs = model.generate(
+                inputs["input_ids"], 
+                max_new_tokens=150, 
+                do_sample=True,
+                temperature=0.7,
+                top_p=0.9,
+            )
             content = tokenizer.decode(outputs[0], skip_special_tokens=True).strip()
             print(f"Resposta do modelo: {content[:100]}...")
 
@@ -80,5 +79,5 @@ def update_metadata():
     print("Metadados de emoção atualizados para todos os documentos!")
 
 print("E")
-update_metadata()
+# update_metadata()
 print("F")

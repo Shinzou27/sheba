@@ -32,4 +32,4 @@ def main(tsv_path):
     executor.map(lambda batch: insert_batch(collection, batch), batches)
 
 if __name__ == "__main__":
-    main("D:/Docs (HD)/Codiguins/python/chaldeas/revised/translations/agartha.tsv")
+    main("C:/Users/felip/Documents/chbr/revised/translations/fuyuki.tsv")
