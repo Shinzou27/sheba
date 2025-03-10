@@ -1,13 +1,10 @@
-import asyncio
+# import torch
+# print(torch.__version__)
+# print(torch.version.cuda)
+# print(torch.cuda.is_available())
+# print(torch.cuda.device_count())
+# print(torch.cuda.get_device_name(0) if torch.cuda.is_available() else "n achou gpu")
 import chromadb
 
-async def query_test():
-  client = await chromadb.AsyncHttpClient(host='localhost', port=8000)
-  collection = await client.get_or_create_collection(name="my_collection")
-  results = await collection.query(
-      query_texts=["This is a query document about florida"],
-      n_results=2
-  )
-  print(results)
-
-asyncio.run(query_test())
+client = chromadb.PersistentClient(path="./chroma_db")
+client.create_collection("personagens_orleans")

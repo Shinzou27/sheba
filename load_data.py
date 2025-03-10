@@ -7,7 +7,7 @@ def load_data(tsv_path):
 
 def insert_batch(collection, batch):
   for index, row in batch.iterrows():
-    print(f"Linha: {index}")
+    print(f"Linha: {index}")    
     collection.add(
       ids=[str(index)],
       documents=[row["Texto (Português)"]],
@@ -21,7 +21,7 @@ def insert_batch(collection, batch):
 
 def main(tsv_path):
   client = chromadb.PersistentClient(path="./chroma_db")
-  collection = client.get_or_create_collection(name="historias")
+  collection = client.get_or_create_collection(name="historias_orleans_original")
   
   df = load_data(tsv_path)
   batch_size = len(df) // 4
@@ -32,4 +32,4 @@ def main(tsv_path):
     executor.map(lambda batch: insert_batch(collection, batch), batches)
 
 if __name__ == "__main__":
-    main("C:/Users/felip/Documents/chbr/revised/translations/fuyuki.tsv")
+    main("C:/Users/felip/Documents/chbr/raw/translations/orleans.tsv")

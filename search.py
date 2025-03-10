@@ -15,7 +15,7 @@ def search_char_dialogues(personagem):
         n_results=30,
         where={"personagem": personagem}
     )
-    return results['documents']
+    return results
 
 def search_context(arrow_id):
     contexto = collection.query(
@@ -28,7 +28,7 @@ def search_context(arrow_id):
 target_personagem = "Mash"
 target_arrow = 200020510
 
-print("Falas do personagem:", search_char_dialogues(target_personagem))
+print("Falas do personagem:", search_char_dialogues(target_personagem)["metadatas"][0][0])
 print("Contexto da fala:", search_context(target_arrow))
 
 def get_near_dialogues(id):
@@ -41,4 +41,3 @@ def get_near_dialogues(id):
 for i in range(20):
   print(get_near_dialogues(i+4000))
   
-print(collection.count())
