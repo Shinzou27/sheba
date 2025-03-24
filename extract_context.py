@@ -12,7 +12,8 @@ model_name = "llama3.2:3b"
 print(f"Modelo carregado: {model_name}")
 
 def get_near_dialogues(id):
-    ids = [str(int(id) + i - 4) for i in range(9)]
+    span = 15
+    ids = [str(int(id) + i - span) for i in range(span + 1)]
     results = collection.get(ids=ids)
     documents = results['documents']
     metadatas = results['metadatas']

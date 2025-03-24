@@ -81,14 +81,14 @@ def initialize_character_data():
                 "name": character_name
                 },
                 {
-                "extroversion": 0,
-                "emotional_control": 0,
-                "creativity": 0,
-                "responsibility": 0,
-                "kindness": 0,
-                "courage": 0,
-                "diligence": 0,
-                "autonomy": 0,
+                "extroversion": 50,
+                "emotional_control": 50,
+                "creativity": 50,
+                "responsibility": 50,
+                "kindness": 50,
+                "courage": 50,
+                "diligence": 50,
+                "autonomy": 50,
                 "summary": ""
                 })
 
@@ -97,6 +97,12 @@ def initialize_character_data():
         documents=[char[0]["name"] for char in unique_characters.values()],
         metadatas=[char[1] for char in list(unique_characters.values())]
     )
+def parse_response(s: str, first_char: str, last_char: str) -> str:
+    l_pos = s.find(first_char)
+    r_pos = s.rfind(last_char)
+    if r_pos == -1:
+        return s
+    return s[l_pos:r_pos + 1]
 
 def get_char_metadata(character_name):
     return char_collection.get(ids=[normalize_char_name(character_name)])["metadatas"]
@@ -117,24 +123,9 @@ Sua tarefa é analisar o comportamento de cada personagem presente e compará-lo
 
 Os ÚNICOS aspectos de personalidade a serem avaliados são: extroversion, emotional_control, creativity, responsibility, kindness, courage, diligence e autonomy.
 
-Por exemplo, se um personagem mostra coragem ou resolve um problema sem hesitar, você pode aumentar o valor do aspecto "Courage" (Coragem). Caso o personagem seja excessivamente agressivo ou egoísta, você poderia ajustar a característica "Kindness" (Bondade) para um valor mais baixo. Um valor 10 é considerado mediano para determinado aspecto de personalidade. Valores mais altos indicam maior presença desse aspecto, enquanto valores mais baixos indicam ausência ou pouca presença desse aspecto na personalidade do personagem.
+Por exemplo, se um personagem mostra coragem ou resolve um problema sem hesitar, você pode aumentar o valor do aspecto "Courage" (Coragem). Caso o personagem seja excessivamente agressivo ou egoísta, você poderia ajustar a característica "Kindness" (Bondade) para um valor mais baixo. Um valor 50 é considerado mediano para determinado aspecto de personalidade. Valores mais altos indicam maior presença desse aspecto, enquanto valores mais baixos indicam ausência ou pouca presença desse aspecto na personalidade do personagem.
 
 Nota importante: Se o comportamento de um personagem não for significativamente diferente do que já foi registrado nas características, não faça nenhum ajuste. Somente ajustes substanciais devem ser feitos, com base em atitudes ou falas que indicam mudanças reais no caráter do personagem.
-
-Se houver necessidade de ajustar os valores de qualquer aspecto de personalidade, gere uma chave e um valor no formato especificado mais adiante, com a chave sendo o aspecto de personalidade em questão e o valor numérico a atualização estipulada. O número DEVE estar entre 1 e 20.
-
-No campo 'summary', você deve adicionar apenas informações relevantes e novas sobre o personagem, com frases de no máximo 80 caracteres. Se não houver novas informações importantes, deixe o campo 'summary' vazio (não omita o campo).
-
-Não adicione quaisquer explicações das mudanças. O output deve ser exclusivamente no formato abaixo, adicionando itens na lista caso haja mais de um personagem presente:
-[
-    {{
-        "character_name": "Nome do personagem",
-        "persona_updates": [
-            {{"Chave": Número}}
-        ],
-        "summary": "Informação relevante sobre o personagem"
-    }}
-]
 
 Os seguintes personagens aparecem nesse diálogo:
         """
@@ -145,6 +136,34 @@ Os seguintes personagens aparecem nesse diálogo:
 
     for dialog, metadata in zip(dialogs, metadatas):
         prompt += f"{metadata['personagem']} | {dialog}\n"
+    output_instructions = """
+Se houver necessidade de ajustar os valores de qualquer aspecto de personalidade, gere uma chave e um valor no formato especificado mais adiante, com a chave sendo o aspecto de personalidade em questão e o valor numérico a atualização estipulada. O valor fornecido NÃO PODE ser menor que 1, nem maior que 100.
+
+No campo 'summary', você deve adicionar apenas informações relevantes e novas sobre o personagem, com frases de no máximo 80 caracteres. Se não houver novas informações importantes, deixe o campo 'summary' vazio (não omita o campo).
+
+Você vai fornecer informações sobre personagens, mas não deve adicionar explicações ou descrições sobre as mudanças. Apenas forneça o output exato no seguinte formato:
+
+[
+    {
+        "character_name": "Nome do personagem",
+        "persona_updates": [  
+            {"extroversion": Valor numérico},
+            {"emotional_control": Valor numérico},
+            {"creativity": Valor numérico},
+            {"responsibility": Valor numérico},
+            {"kindness": Valor numérico},
+            {"courage": Valor numérico},
+            {"diligence": Valor numérico},
+            {"autonomy": Valor numérico},
+        ],
+        "summary: "Informação relevante sobre o personagem"
+    }
+]
+
+
+Lembre-se: Adicione novos itens à lista se houver mais de um personagem. Nada mais além disso. Apenas o formato acima, sem explicações ou texto adicional.
+    """
+    prompt += output_instructions
     return prompt
 
 def process_dialogs_and_update_characters():
@@ -152,7 +171,7 @@ def process_dialogs_and_update_characters():
     dialogs = dialogs_data["documents"]
     metadatas = dialogs_data["metadatas"]
     
-    batch_size = 30
+    batch_size = 100
     max_attempts = 3
     for i in range(0, len(dialogs), batch_size):
         print(f"Processo {1+int(i/batch_size)} de {len(dialogs)//batch_size}...")
@@ -162,28 +181,31 @@ def process_dialogs_and_update_characters():
                 metadatas_batch = metadatas[i:i + batch_size]
                 prompt = generate_prompt(dialogs_batch, metadatas_batch)
                 response = ollama.chat(model=model_name, messages=[{"role": "user", "content": prompt}])
-                content = response.message.content.strip()
+                content = parse_response(response.message.content.strip(), "[", "]")
+                if not (content[0] == "[" and content[-1] == "]"):
+                    content = f"[{content}]"
+                # print(content)
                 content = parse_content(content)
                 print_personality_analysis(content)
                 for char in content:
-                    update_character_in_db(char, normalize_char_name(char['character_name']))
-                    pass
+                    update_character_in_db(char, char['character_name'], normalize_char_name(char['character_name']))
                 break
             except Exception as e:
-                print(f"Tentativa {attempt+1} de {max_attempts} sem sucesso.\nErro:\n{e}")
+                print(f"Tentativa {attempt+1} de {max_attempts} sem sucesso.\nErro:\n{e}\nResposta do modelo:\n{content}")
                 if attempt <= max_attempts:
                     continue
 
-def update_character_in_db(character_data, character_id):
+def update_character_in_db(character_data, character_name, character_id):
     updates = {}
-    parse = lambda original_list : {list(item.keys())[0]: list(item.values())[0] for item in original_list}
+    parse = lambda original_list : {list([key.lower() for key in item.keys()])[0]: list(item.values())[0] for item in original_list}
     if 'persona_updates' in character_data:
         updates = filter_dict(parse(character_data['persona_updates']), ['extroversion', 'emotional_control', 'creativity', 'responsibility', 'kindness', 'courage', 'diligence', 'autonomy', 'summary'])
     if 'summary' in character_data and character_data['summary'] != '':
         updates['summary'] = character_data['summary']
     if len(updates.keys()) > 0:
-        char_collection.update(
+        char_collection.upsert(
             ids=[character_id],
+            documents=[character_name],
             metadatas=[updates]
         )
 
